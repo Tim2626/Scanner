@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
+#include <sys/resource.h>
 
 char	*ft_itoa(int n);
 
@@ -62,9 +63,9 @@ void incr_ip(ip_t *ip)
     }
 }
 
-int in_index(int search, int *index, int nb_index)
+int in_index(unsigned long search, unsigned long *index, unsigned long nb_index)
 {
-    for (int i = 0; i < nb_index; i++) {
+    for (unsigned long i = 0; i < nb_index; i++) {
         if (index[i] == search)
             return 1;
     }
@@ -131,9 +132,9 @@ int main(int argc, char **argv)
     SOCKADDR addr;
     ip_t ip;
     int socket_flags;
-    int *index;
-    int nb_index = 0;
-    int nb_to_scan;
+    unsigned long *index;
+    unsigned long nb_index = 0;
+    unsigned long nb_to_scan;
     uint16_t port;
     int timeout;
     int r;
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
     }
 
     nb_to_scan = atoi(argv[3]);
-    if (nb_to_scan <= 0) {
+    if (nb_to_scan == 0 || argv[3][0] == '-') {
         printf("Bad number to scan\n");
         return 1;
     }
@@ -179,7 +180,7 @@ int main(int argc, char **argv)
         free(pollfd);
         free(sock);
     }
-    index = malloc(nb_to_scan * sizeof(int));
+    index = malloc(nb_to_scan * sizeof(unsigned long));
     if (index  == NULL) {
         printf("Failed malloc\n");
         free(pollfd);
@@ -188,15 +189,25 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    struct rlimit limit;
+
+    getrlimit(RLIMIT_NOFILE, &limit);
+
+    limit.rlim_cur = nb_to_scan;
+    if (nb_to_scan > limit.rlim_max)
+        limit.rlim_max = nb_to_scan;
+
+    setrlimit(RLIMIT_NOFILE, &limit);
+
     signal(SIGINT, good_quit);
 
     memset(&addr, 0, sizeof(SOCKADDR));
     memset(sock, 0, nb_to_scan * sizeof(SOCKET));
     memset(pollfd, 0, nb_to_scan * sizeof(POLLFD));
-    memset(index, 0, nb_to_scan * sizeof(int));
+    memset(index, 0, nb_to_scan * sizeof(unsigned long));
 
 
-    for (int i = 0; i < nb_to_scan; i++) {
+    for (unsigned long i = 0; i < nb_to_scan; i++) {
         sock[i] = socket(AF_INET, SOCK_STREAM, 0);
         socket_flags = fcntl(sock[i], F_GETFL, 0);
         fcntl(sock[i], F_SETFL, socket_flags | O_NONBLOCK);
@@ -208,20 +219,20 @@ int main(int argc, char **argv)
     addr.sin_port = htons(port);
     addr.sin_family = AF_INET;
 
-    for (int i = 0; i < nb_to_scan; i++) {
+    for (unsigned long i = 0; i < nb_to_scan; i++) {
         addresse[i] = ip_construct(ip);
         addr.sin_addr.s_addr = inet_addr(addresse[i]);
         connect(sock[i], (struct sockaddr *)&addr, sizeof(SOCKADDR));
         incr_ip(&ip);
     }
 
-    printf("Start scanning on %s to %s on port %d, timeout = %dms\n\n", addresse[0], addresse[nb_to_scan-1], port, timeout);
+    printf("Start scanning on %s to %s\nOn port %d\ntimeout = %dms\nNumber to scan = %ld\n\n", addresse[0], addresse[nb_to_scan-1], port, timeout, nb_to_scan);
 
     do
     {
         r = poll(pollfd, nb_to_scan, timeout);
         if (r < 0) {
-            printf("Unexcepted error, try again\n");
+            perror("");
             quit = 1;
             break;
         }
@@ -230,7 +241,7 @@ int main(int argc, char **argv)
             quit = 1;
             break;
         }
-        for (int i = 0; i < nb_to_scan; i++) {
+        for (unsigned long i = 0; i < nb_to_scan; i++) {
             if ((pollfd[i].revents & POLLOUT) == POLLOUT && !in_index(i, index, nb_index)) {
                 printf("Received from %s\n", addresse[i]);
                 fflush(stdout);
@@ -244,7 +255,7 @@ int main(int argc, char **argv)
     free(sock);
     free(index);
     free(pollfd);
-    for (int i = 0; i < nb_to_scan; i++)
+    for (unsigned long i = 0; i < nb_to_scan; i++)
         free(addresse[i]);
     free(addresse);
     printf("Process cleaned quiting\n");
