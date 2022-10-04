@@ -192,12 +192,12 @@ int main(int argc, char **argv)
     struct rlimit limit;
 
     getrlimit(RLIMIT_NOFILE, &limit);
-
     limit.rlim_cur = nb_to_scan;
     if (nb_to_scan > limit.rlim_max)
         limit.rlim_max = nb_to_scan;
 
-    setrlimit(RLIMIT_NOFILE, &limit);
+    if (setrlimit(RLIMIT_NOFILE, &limit) < 0)
+        printf("Failed change limit /!\\\n");
 
     signal(SIGINT, good_quit);
 
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
         }
         for (unsigned long i = 0; i < nb_to_scan; i++) {
             if ((pollfd[i].revents & POLLOUT) == POLLOUT && !in_index(i, index, nb_index)) {
-                printf("Received from %s\n", addresse[i]);
+                printf("%s\n", addresse[i]);
                 fflush(stdout);
                 index[nb_index] = i;
                 nb_index++;
