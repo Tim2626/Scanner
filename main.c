@@ -225,7 +225,7 @@ int main(int argc, char **argv)
             quit = 1;
             break;
         }
-        if (r == 0) {
+        if (timeout != 0 && r == 0) {
             printf("Timeout\n");
             quit = 1;
             break;
