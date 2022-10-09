@@ -1,6 +1,6 @@
 # Scanner
 
-Simple tcp scanner written in C using sockets.
+Simple linux TCP scanner written in C using sockets.
 
 To use it :
 
