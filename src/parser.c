@@ -39,7 +39,7 @@ int get_start_ip(char *ip, ipv4_t *ipv4) {
         return -1;
     o4 = tmp;
 
-    *ipv4 = o4 << 24 | o3 << 16 | o2 << 8 | o1;
+    *ipv4 = htonl(o1 | o2 << 8 | o3 << 16 | o4 << 24);
 
     return 1;
 }

@@ -87,7 +87,8 @@ int start_scan(params_t params, int flags) {
 
 
     getrlimit(RLIMIT_NOFILE, &limit);
-    limit.rlim_cur = params.number;
+    if (limit.rlim_cur < params.number)
+        limit.rlim_cur = params.number;
     if (params.number > limit.rlim_max)
         limit.rlim_max = params.number;
 
@@ -116,7 +117,7 @@ int start_scan(params_t params, int flags) {
         connect(sock[i], (struct sockaddr *)&addr, sizeof(SOCKADDR));
     }
 
-    tmp.s_addr = params.start;
+    tmp.s_addr = ips[0];
     if (params.start != 0)
         printf("Start scanning %s, %ld ip on port %d\n", inet_ntoa(tmp), params.number, params.port);
     else
