@@ -61,6 +61,11 @@ int parse_options(int argc, char **argv, params_t *params) {
     int long_index;
     int tmp;
 
+    if (argc == 1) {
+        printf(help_msg, argv[0]);
+        return -1;
+    }
+
     const struct option long_options[] = {
             {"start",   required_argument, 0, 's' },
             {"number",  required_argument, 0, 'n' },
